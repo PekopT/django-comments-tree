@@ -227,8 +227,9 @@ class ReadCommentSerializer(serializers.ModelSerializer):
     user_moderator = serializers.SerializerMethodField()
     user_avatar = serializers.SerializerMethodField()
     submit_date = serializers.SerializerMethodField()
-    parent_id = serializers.IntegerField(default=0, read_only=True)
-    level = serializers.IntegerField(read_only=True)
+    # parent_id = serializers.IntegerField(default=0, read_only=True)
+    parent_id = serializers.SerializerMethodField(read_only=True)
+    level = serializers.IntegerField(read_only=True, source='thread_level')
     is_removed = serializers.BooleanField(read_only=True)
     comment = serializers.SerializerMethodField()
     allow_reply = serializers.SerializerMethodField()
@@ -245,6 +246,9 @@ class ReadCommentSerializer(serializers.ModelSerializer):
         self.request = kwargs['context']['request']
         super().__init__(*args, **kwargs)
 
+    def get_parent_id(self, obj):
+        return obj.get_parent().pk
+
     def get_submit_date(self, obj):
         activate(get_language())
         return formats.date_format(obj.submit_date, 'DATETIME_FORMAT',
@@ -254,7 +258,7 @@ class ReadCommentSerializer(serializers.ModelSerializer):
         if obj.is_removed:
             return _("This comment has been removed.")
         else:
-            return obj.comment
+            return str(obj.comment)
 
     def get_user_moderator(self, obj):
         try:

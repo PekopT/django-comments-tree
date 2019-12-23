@@ -89,7 +89,13 @@ def _create_comment(tmp_comment):
     content_object = tmp_comment.pop('content_object')
     tmp_comment.pop('object_id')
     tmp_comment.pop('site_id')
-    root = TreeComment.objects.get_or_create_root(content_object)
+    reply_to = tmp_comment.pop('reply_to', None)
+
+    if reply_to:
+        root = TreeComment.objects.get(pk=reply_to)
+    else:
+        root = TreeComment.objects.get_or_create_root(content_object)
+
     comment = root.add_child(**tmp_comment)
     # comment = TreeComment(**tmp_comment)
     # comment.is_public = True

@@ -148,6 +148,7 @@ class CommentDetailsForm(CommentSecurityForm):
             site_id=site_id or getattr(settings, "SITE_ID", None),
             is_public=True,
             is_removed=False,
+            reply_to=self.cleaned_data['reply_to'],
         )
 
     def check_for_duplicate_comment(self, new):

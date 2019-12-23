@@ -39,18 +39,19 @@ class CommentList(generics.ListAPIView):
 
     def get_queryset(self):
         content_type_arg = self.kwargs.get('content_type', None)
-        object_id_arg = self.kwargs.get('object_id', None)
-        app_label, model = content_type_arg.split("-")
+        object_id_arg = self.kwargs.get('object_pk', None)
+        app_label, model = content_type_arg.split(".")
         try:
             content_type = ContentType.objects.get_by_natural_key(app_label,
                                                                   model)
         except ContentType.DoesNotExist:
             qs = TreeComment.objects.none()
         else:
-            qs = TreeComment.objects.filter(content_type=content_type,
-                                            object_id=object_id_arg,
-                                            site__pk=settings.SITE_ID,
-                                            is_public=True)
+            qs = TreeComment.objects.filter(assoc__content_type=content_type,
+                                            assoc__object_id=object_id_arg,
+                                            assoc__site__pk=settings.SITE_ID,
+                                            is_public=True,
+                                            depth__gt=1)
         return qs
 
 
@@ -60,12 +61,13 @@ class CommentCount(generics.GenericAPIView):
 
     def get_queryset(self):
         content_type_arg = self.kwargs.get('content_type', None)
-        object_id_arg = self.kwargs.get('object_id', None)
-        app_label, model = content_type_arg.split("-")
+        object_id_arg = self.kwargs.get('object_pk', None)
+        app_label, model = content_type_arg.split(".")
         content_type = ContentType.objects.get_by_natural_key(app_label, model)
-        qs = TreeComment.objects.filter(content_type=content_type,
-                                        object_id=object_id_arg,
-                                        is_public=True)
+        qs = TreeComment.objects.filter(assoc__content_type=content_type,
+                                        assoc__object_id=object_id_arg,
+                                        is_public=True,
+                                            depth__gt=1)
         return qs
 
     def get(self, request, *args, **kwargs):
