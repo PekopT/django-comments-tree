@@ -16,6 +16,7 @@ from django_comments_tree.permissions import IsOwner, IsModerator
 class CommentCreate(generics.CreateAPIView):
     """Create a comment."""
     serializer_class = serializers.WriteCommentSerializer
+    read_serializer_class = serializers.ReadCommentSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -28,6 +29,21 @@ class CommentCreate(generics.CreateAPIView):
             return response
         elif self.resp_dict['code'] in [202, 204, 403]:
             return Response(status=self.resp_dict['code'])
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        headers = self.get_success_headers(serializer.data)
+
+        if settings.COMMENTS_TREE_API_ANSWER_WITH_READ_SERIALIZER:
+            answer_serializer = self.read_serializer_class(instance=self.resp_dict['comment']['tree_comment'],
+                                                           context=dict(request=self.request))
+        else:
+            answer_serializer = serializer
+
+        return Response(answer_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
         self.resp_dict = serializer.save()
@@ -67,7 +83,7 @@ class CommentCount(generics.GenericAPIView):
         qs = TreeComment.objects.filter(assoc__content_type=content_type,
                                         assoc__object_id=object_id_arg,
                                         is_public=True,
-                                            depth__gt=1)
+                                        depth__gt=1)
         return qs
 
     def get(self, request, *args, **kwargs):

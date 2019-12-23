@@ -23,6 +23,8 @@ COMMENTS_TREE_CONTACT_EMAIL = settings.DEFAULT_FROM_EMAIL
 # Maximum Thread Level.
 COMMENTS_TREE_MAX_THREAD_LEVEL = 0
 
+COMMENTS_TREE_MAX_THREAD_LEVEL_ALLOW_ANSWERS_ON_MAXIMUM_LEVEL = False
+
 # Maximum Thread Level per app.model basis.
 COMMENTS_TREE_MAX_THREAD_LEVEL_BY_APP_MODEL = {}
 
@@ -66,6 +68,8 @@ def username(u):
 
 COMMENTS_TREE_API_USER_REPR = username
 
+COMMENTS_TREE_API_USER_URL_REPR = username
+
 # Set to true to enable Firebase notifications
 COMMENTS_TREE_ENABLE_FIREBASE = False
 
@@ -77,3 +81,9 @@ MARKUP_FIELD_TYPES = (
     ('markdown', markdown.markdown),
     ('draftjs', render_draftjs),
 )
+
+COMMENTS_TREE_API_USER_AVATAR_FIELD = False
+
+COMMENTS_TREE_API_ANSWER_WITH_READ_SERIALIZER = False
+
+

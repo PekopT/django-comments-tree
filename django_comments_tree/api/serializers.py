@@ -178,10 +178,17 @@ class WriteCommentSerializer(serializers.Serializer):
         #  * Comment in moderation (http 202),
         #  * Comment rejected (http 403).
         site = get_current_site(self.request)
+
+        try:
+            comment_object = self.form.get_comment_object(site_id=site.id)
+        except ValueError:
+            raise serializers.ValidationError(self.form.errors)
+
         resp = {
             'code': -1,
-            'comment': self.form.get_comment_object(site_id=site.id)
+            'comment': comment_object
         }
+
         resp['comment'].ip_address = self.request.META.get("REMOTE_ADDR", None)
 
         if self.request.user.is_authenticated:
@@ -222,12 +229,11 @@ class WriteCommentSerializer(serializers.Serializer):
 
 
 class ReadCommentSerializer(serializers.ModelSerializer):
-    user_name = serializers.CharField(max_length=50, read_only=True)
-    user_url = serializers.CharField(read_only=True)
+    user_name = serializers.SerializerMethodField()
+    user_url = serializers.SerializerMethodField()
     user_moderator = serializers.SerializerMethodField()
     user_avatar = serializers.SerializerMethodField()
     submit_date = serializers.SerializerMethodField()
-    # parent_id = serializers.IntegerField(default=0, read_only=True)
     parent_id = serializers.SerializerMethodField(read_only=True)
     level = serializers.IntegerField(read_only=True, source='thread_level')
     is_removed = serializers.BooleanField(read_only=True)
@@ -247,7 +253,23 @@ class ReadCommentSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
 
     def get_parent_id(self, obj):
-        return obj.get_parent().pk
+        return obj.get_parent().pk if obj.get_parent().depth > 1 else None
+
+    def get_user_name(self, obj):
+        if obj.user_name:
+            return obj.user_name
+        elif obj.user:
+            return settings.COMMENTS_TREE_API_USER_REPR(obj.user)
+        else:
+            return None
+
+    def get_user_url(self, obj):
+        if obj.user_url:
+            return obj.user_url
+        elif obj.user:
+            return settings.COMMENTS_TREE_API_USER_URL_REPR(obj.user)
+        else:
+            return None
 
     def get_submit_date(self, obj):
         activate(get_language())
@@ -271,13 +293,14 @@ class ReadCommentSerializer(serializers.ModelSerializer):
 
     def get_flags(self, obj):
         flags = {
-            'like': {'active': False, 'users': None},
-            'dislike': {'active': False, 'users': None},
-            'removal': {'active': False, 'count': None},
+            'like': {'active': False, 'count': 0},
+            'dislike': {'active': False, 'count': 0},
         }
         users_likedit, users_dislikedit = None, None
 
         if has_app_model_option(obj)['allow_flagging']:
+            flags['removal'] = {'active': False, 'count': None}
+
             users_flagging = obj.users_flagging(TreeCommentFlag.SUGGEST_REMOVAL)
             if self.request.user in users_flagging:
                 flags['removal']['active'] = True
@@ -287,13 +310,21 @@ class ReadCommentSerializer(serializers.ModelSerializer):
         opt = has_app_model_option(obj)
         if opt['allow_feedback'] or opt['show_feedback']:
             users_likedit = obj.users_flagging(LIKEDIT_FLAG)
+            if users_likedit:
+                flags['like']['count'] = len(users_likedit)
+
             users_dislikedit = obj.users_flagging(DISLIKEDIT_FLAG)
+
+            if users_dislikedit:
+                flags['dislike']['count'] = len(users_dislikedit)
 
         if has_app_model_option(obj)['allow_feedback']:
             if self.request.user in users_likedit:
                 flags['like']['active'] = True
+
             elif self.request.user in users_dislikedit:
                 flags['dislike']['active'] = True
+
         if has_app_model_option(obj)['show_feedback']:
             flags['like']['users'] = [
                 "%d:%s" % (user.id, settings.COMMENTS_TREE_API_USER_REPR(user))
@@ -307,6 +338,13 @@ class ReadCommentSerializer(serializers.ModelSerializer):
         return obj.allow_thread()
 
     def get_user_avatar(self, obj):
+        if settings.COMMENTS_TREE_API_USER_AVATAR_FIELD and obj.user:
+            avatar = getattr(obj.user, settings.COMMENTS_TREE_API_USER_AVATAR_FIELD)
+            if avatar:
+                return avatar.url
+            else:
+                return None
+
         path = hashlib.md5(obj.user_email.lower().encode('utf-8')).hexdigest()
         param = urlencode({'s': 48})
         return "https://www.gravatar.com/avatar/%s?%s&d=mm" % (path, param)
