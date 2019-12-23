@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.1.4] = 2019-12-23
+
+    Making *-tree package works. Fixing errors
+
 ## [0.1.3] = 2019-10-27
 
     Add data migration to insure that the 'assoc' value is set in the TreeComments

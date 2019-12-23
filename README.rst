@@ -24,7 +24,7 @@ It extends the once official `django-contrib-comments <https://pypi.python.org/p
 
 Example sites and tests work under officially Django `supported versions <https://www.djangoproject.com/download/#supported-versions>`_:
 
-* Django 2.1, 2.0 and 1.11
+* Django 2.2, 2.1, 2.0 and 1.11
 * Python 3.6, 3.5, 3.4, 3.2 and 2.7
 
 Additional Dependencies:
