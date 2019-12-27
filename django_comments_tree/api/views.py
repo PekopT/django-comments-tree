@@ -40,6 +40,21 @@ class CommentCreate(generics.CreateAPIView):
         if settings.COMMENTS_TREE_API_ANSWER_WITH_READ_SERIALIZER:
             answer_serializer = self.read_serializer_class(instance=self.resp_dict['comment']['tree_comment'],
                                                            context=dict(request=self.request))
+        elif settings.COMMENTS_TREE_API_ANSWER_WITH_FULL_TREE:
+            app_label, model = request.data['content_type'].split(".")
+            try:
+                content_type = ContentType.objects.get_by_natural_key(app_label,
+                                                                      model)
+            except ContentType.DoesNotExist:
+                qs = TreeComment.objects.none()
+            else:
+                qs = TreeComment.objects.filter(assoc__content_type=content_type,
+                                                assoc__object_id=request.data['object_id'],
+                                                assoc__site__pk=settings.SITE_ID,
+                                                is_public=True,
+                                                depth__gt=1)
+
+            answer_serializer = self.read_serializer_class(qs, many=True, context=dict(request=self.request))
         else:
             answer_serializer = serializer
 
