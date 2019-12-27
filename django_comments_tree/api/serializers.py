@@ -233,6 +233,7 @@ class ReadCommentSerializer(serializers.ModelSerializer):
     user_url = serializers.SerializerMethodField()
     user_moderator = serializers.SerializerMethodField()
     user_avatar = serializers.SerializerMethodField()
+    user_rank = serializers.SerializerMethodField()
     submit_date = serializers.SerializerMethodField()
     parent_id = serializers.SerializerMethodField(read_only=True)
     level = serializers.IntegerField(read_only=True, source='thread_level')
@@ -245,7 +246,7 @@ class ReadCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = TreeComment
         fields = ('id', 'user_name', 'user_url', 'user_moderator',
-                  'user_avatar', 'permalink', 'comment', 'submit_date',
+                  'user_avatar', 'user_rank', 'permalink', 'comment', 'submit_date',
                   'parent_id', 'level', 'is_removed', 'allow_reply', 'flags')
 
     def __init__(self, *args, **kwargs):
@@ -343,11 +344,20 @@ class ReadCommentSerializer(serializers.ModelSerializer):
             if avatar:
                 return avatar.url
             else:
-                return None
+                return settings.COMMENTS_TREE_API_USER_AVATAR_DEFAULT
 
         path = hashlib.md5(obj.user_email.lower().encode('utf-8')).hexdigest()
         param = urlencode({'s': 48})
         return "https://www.gravatar.com/avatar/%s?%s&d=mm" % (path, param)
+
+    def get_user_rank(self, obj):
+        if settings.COMMENTS_TREE_API_USER_RANK_FIELD and obj.user:
+            rank = getattr(obj.user, settings.COMMENTS_TREE_API_USER_RANK_FIELD)
+            if rank:
+                return rank
+            else:
+                return settings.COMMENTS_TREE_API_USER_RANK_DEFAULT
+        return settings.COMMENTS_TREE_API_USER_RANK_DEFAULT
 
     def get_permalink(self, obj):
         return obj.get_absolute_url()
