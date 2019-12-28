@@ -23,6 +23,9 @@ COMMENTS_TREE_CONTACT_EMAIL = settings.DEFAULT_FROM_EMAIL
 # Maximum Thread Level.
 COMMENTS_TREE_MAX_THREAD_LEVEL = 0
 
+# allow answer to max thread level, but save as maximum thread level
+COMMENTS_ALLOW_MAX_THREAD_LEVEL = False
+
 COMMENTS_TREE_MAX_THREAD_LEVEL_ALLOW_ANSWERS_ON_MAXIMUM_LEVEL = False
 
 # Maximum Thread Level per app.model basis.

@@ -93,6 +93,8 @@ def _create_comment(tmp_comment):
 
     if reply_to:
         root = TreeComment.objects.get(pk=reply_to)
+        if settings.COMMENTS_ALLOW_MAX_THREAD_LEVEL and root.depth > settings.COMMENTS_TREE_MAX_THREAD_LEVEL:
+            root = root.get_parent()
     else:
         root = TreeComment.objects.get_or_create_root(content_object)
 

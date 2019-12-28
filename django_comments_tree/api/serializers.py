@@ -117,11 +117,11 @@ class WriteCommentSerializer(serializers.Serializer):
 
     def validate_name(self, value):
         if not len(value):
-            fnl = len(self.request.user.get_full_name())
+            fnl = len(str(self.request.user))
             if not fnl or not self.request.user.is_authenticated:
                 raise serializers.ValidationError("This field is required")
             else:
-                return self.request.user.get_full_name() or self.request.user.get_username()
+                return str(self.request.user)
         return value
 
     def validate_email(self, value):
