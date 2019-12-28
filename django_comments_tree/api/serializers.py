@@ -229,6 +229,7 @@ class WriteCommentSerializer(serializers.Serializer):
 
 
 class ReadCommentSerializer(serializers.ModelSerializer):
+    user_id = serializers.SerializerMethodField()
     user_name = serializers.SerializerMethodField()
     user_url = serializers.SerializerMethodField()
     user_moderator = serializers.SerializerMethodField()
@@ -245,7 +246,7 @@ class ReadCommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TreeComment
-        fields = ('id', 'user_name', 'user_url', 'user_moderator',
+        fields = ('id', 'user_id', 'user_name', 'user_url', 'user_moderator',
                   'user_avatar', 'user_rank', 'permalink', 'comment', 'submit_date',
                   'parent_id', 'level', 'is_removed', 'allow_reply', 'flags')
 
@@ -261,6 +262,12 @@ class ReadCommentSerializer(serializers.ModelSerializer):
             return obj.user_name
         elif obj.user:
             return settings.COMMENTS_TREE_API_USER_REPR(obj.user)
+        else:
+            return None
+
+    def get_user_id(self, obj):
+        if obj.user:
+            return obj.user.pk
         else:
             return None
 
