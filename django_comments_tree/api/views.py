@@ -55,6 +55,11 @@ class CommentCreate(generics.CreateAPIView):
                                                 depth__gt=1)
 
             answer_serializer = self.read_serializer_class(qs, many=True, context=dict(request=self.request))
+            object_answer_serializer = self.read_serializer_class(instance=self.resp_dict['comment']['tree_comment'],
+                                                                  context=dict(request=self.request))
+
+            return Response(dict(tree=answer_serializer.data, new=object_answer_serializer.data),
+                            status=status.HTTP_201_CREATED, headers=headers)
         else:
             answer_serializer = serializer
 
