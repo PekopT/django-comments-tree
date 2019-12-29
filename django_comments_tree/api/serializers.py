@@ -401,3 +401,54 @@ class FlagSerializer(serializers.ModelSerializer):
             )
         data['flag'] = self.flag_choices[data['flag']]
         return data
+
+
+class UpdateCommentSerializer(serializers.Serializer):
+    content_type = serializers.CharField()
+    object_id = serializers.CharField()
+    timestamp = serializers.CharField()
+    security_hash = serializers.CharField()
+    honeypot = serializers.CharField(allow_blank=True)
+    comment = serializers.CharField(max_length=COMMENT_MAX_LENGTH)
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs['context']['request']
+        self.form = None
+        super().__init__(*args, **kwargs)
+
+    def validate(self, data):
+        ctype = data.get("content_type")
+        object_id = data.get("object_id")
+        if ctype is None or object_id is None:
+            return serializers.ValidationError("Missing content_type or "
+                                               "object_id field.")
+        try:
+            model = apps.get_model(*ctype.split(".", 1))
+            target = model._default_manager.get(pk=object_id)
+        except TypeError:
+            return serializers.ValidationError("Invalid content_type value: %r"
+                                               % escape(ctype))
+        except AttributeError:
+            return serializers.ValidationError("The given content-type %r does "
+                                               "not resolve to a valid model."
+                                               % escape(ctype))
+        except model.ObjectDoesNotExist:
+            return serializers.ValidationError(
+                "No object matching content-type %r and object ID %r exists."
+                % (escape(ctype), escape(object_id)))
+        except (ValueError, serializers.ValidationError) as e:
+            return serializers.ValidationError(
+                "Attempting go get content-type %r and object ID %r exists "
+                "raised %s" % (escape(ctype), escape(object_id),
+                               e.__class__.__name__))
+
+        self.form = get_form()(target, data=data)
+
+        # Check security information
+        if self.form.security_errors():
+            return serializers.ValidationError(
+                "The comment form failed security verification: %s" %
+                escape(str(self.form.security_errors())))
+        if self.form.errors:
+            return serializers.ValidationError(self.form.errors)
+        return data

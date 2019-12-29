@@ -144,3 +144,18 @@ class CreateReportFlag(generics.CreateAPIView):
 class RemoveReportFlag(generics.DestroyAPIView):
     queryset = TreeCommentFlag.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner, IsModerator,)
+
+
+class RemoveComment(generics.DestroyAPIView):
+    queryset = TreeComment.objects.all()
+    permission_classes = (permissions.IsAuthenticated, IsOwner)
+
+    def perform_destroy(self, instance):
+        instance.is_removed = True
+        instance.save(update_fields=['is_removed'])
+
+
+class EditComment(generics.UpdateAPIView):
+    serializer_class = serializers.UpdateCommentSerializer
+    queryset = TreeComment.objects.all()
+    permission_classes = (permissions.IsAuthenticated, IsOwner)

@@ -27,6 +27,10 @@ urlpatterns = [
     # API handlers.
     url(r'^api/comment/$', api.CommentCreate.as_view(),
         name='comments-tree-api-create'),
+    url(r'^api/comment/(?P<pk>\d+)/$', api.RemoveComment.as_view(),
+        name='comments-tree-api-remove-comment'),
+    url(r'^api/comment/(?P<pk>\d+)/$', api.EditComment.as_view(),
+        name='comments-tree-api-update-comment'),
     url(r'^api/(?P<content_type>\w+[\.]{1}\w+)/(?P<object_pk>[-\w]+)/$',
         api.CommentList.as_view(), name='comments-tree-api-list'),
     url(r'^api/(?P<content_type>\w+[\.]{1}\w+)/(?P<object_pk>[-\w]+)/count/$',
