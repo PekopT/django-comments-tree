@@ -1,16 +1,19 @@
+from datetime import timedelta
+
 import six
-
 from django.contrib.contenttypes.models import ContentType
-
-from django_comments_tree.views.moderation import perform_flag
+from django.utils import timezone
 from rest_framework import generics, mixins, permissions, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 
-from django_comments_tree.views import comments as views
 from django_comments_tree.api import serializers
 from django_comments_tree.conf import settings
 from django_comments_tree.models import TreeComment, TreeCommentFlag
 from django_comments_tree.permissions import IsOwner, IsModerator
+from django_comments_tree.views import comments as views
+from django_comments_tree.views.moderation import perform_flag
 
 
 class CommentCreate(generics.CreateAPIView):
@@ -43,8 +46,7 @@ class CommentCreate(generics.CreateAPIView):
         elif settings.COMMENTS_TREE_API_ANSWER_WITH_FULL_TREE:
             app_label, model = request.data['content_type'].split(".")
             try:
-                content_type = ContentType.objects.get_by_natural_key(app_label,
-                                                                      model)
+                content_type = ContentType.objects.get_by_natural_key(app_label, model)
             except ContentType.DoesNotExist:
                 qs = TreeComment.objects.none()
             else:
@@ -146,16 +148,44 @@ class RemoveReportFlag(generics.DestroyAPIView):
     permission_classes = (permissions.IsAuthenticated, IsOwner, IsModerator,)
 
 
-class RemoveComment(generics.DestroyAPIView):
-    queryset = TreeComment.objects.all()
-    permission_classes = (permissions.IsAuthenticated, IsOwner)
-
-    def perform_destroy(self, instance):
-        instance.is_removed = True
-        instance.save(update_fields=['is_removed'])
-
-
-class EditComment(generics.UpdateAPIView):
+class ChangeCommentViewSet(mixins.UpdateModelMixin, mixins.DestroyModelMixin, GenericViewSet):
     serializer_class = serializers.UpdateCommentSerializer
     queryset = TreeComment.objects.all()
     permission_classes = (permissions.IsAuthenticated, IsOwner)
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.perform_destroy(request, *args, **kwargs)
+
+    def perform_destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_removed = True
+        instance.updated_on = timezone.now()
+        instance.save(update_fields=['is_removed', 'updated_on'])
+
+        return Response()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        if instance.is_removed:
+            raise PermissionDenied("You can not edit deleted comment")
+
+        if instance.submit_date < timezone.now() - timedelta(
+                hours=settings.COMMENTS_TREE_API_EDIT_COMMENT_COOLDOWN_HOURS):
+            raise PermissionDenied(
+                f"You can not edit comment after {settings.COMMENTS_TREE_API_EDIT_COMMENT_COOLDOWN_HOURS} hours after posting")
+
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)

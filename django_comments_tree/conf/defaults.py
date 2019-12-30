@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
-from django.conf import settings
+
 import markdown
+from django.conf import settings
+
 from django_comments_tree.render import render_draftjs, render_plain
 
 # Default application namespace
@@ -93,5 +95,7 @@ COMMENTS_TREE_API_USER_RANK_DEFAULT = False
 
 COMMENTS_TREE_API_ANSWER_WITH_READ_SERIALIZER = False
 COMMENTS_TREE_API_ANSWER_WITH_FULL_TREE = True
+
+COMMENTS_TREE_API_EDIT_COMMENT_COOLDOWN_HOURS = 2
 
 

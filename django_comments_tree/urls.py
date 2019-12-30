@@ -1,6 +1,5 @@
 from django.conf.urls import url
 from django.contrib.contenttypes.views import shortcut
-from rest_framework.urlpatterns import format_suffix_patterns
 
 from django_comments_tree import api
 from .views.comments import (comment_done, confirm, dislike, dislike_done,
@@ -8,6 +7,12 @@ from .views.comments import (comment_done, confirm, dislike, dislike_done,
                              reply, sent)
 from .views.moderation import (approve, approve_done, delete, delete_done,
                                flag, flag_done)
+
+
+change_comments_router = api.ChangeCommentViewSet.as_view({
+    "patch": "patch",
+    "delete": "delete",
+})
 
 urlpatterns = [
     url(r'^sent/$', sent, name='comments-tree-sent'),
@@ -25,12 +30,10 @@ urlpatterns = [
     url(r'^disliked/$', dislike_done, name='comments-tree-dislike-done'),
 
     # API handlers.
-    url(r'^api/comment/$', api.CommentCreate.as_view(),
-        name='comments-tree-api-create'),
-    url(r'^api/comment/(?P<pk>\d+)/$', api.RemoveComment.as_view(),
-        name='comments-tree-api-remove-comment'),
-    url(r'^api/comment/(?P<pk>\d+)/$', api.EditComment.as_view(),
-        name='comments-tree-api-update-comment'),
+    url(r'^api/comment/$', api.CommentCreate.as_view(), name='comments-tree-api-create'),
+    url(r'^api/comment/(?P<pk>\d+)/$', change_comments_router, name='comments-tree-api-change-comment'),
+    # url(r'^api/comment/(?P<pk>\d+)/$', api.EditComment.as_view(),
+    #     name='comments-tree-api-update-comment'),
     url(r'^api/(?P<content_type>\w+[\.]{1}\w+)/(?P<object_pk>[-\w]+)/$',
         api.CommentList.as_view(), name='comments-tree-api-list'),
     url(r'^api/(?P<content_type>\w+[\.]{1}\w+)/(?P<object_pk>[-\w]+)/count/$',
@@ -56,5 +59,3 @@ urlpatterns += [
 
     url(r'^cr/(\d+)/(.+)/$', shortcut, name='comments-url-redirect'),
 ]
-
-urlpatterns = format_suffix_patterns(urlpatterns)
