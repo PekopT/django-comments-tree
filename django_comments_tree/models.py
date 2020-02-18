@@ -60,7 +60,7 @@ class CommentManager(MP_NodeManager):
     def get_root(self, obj, site=None):
         """ Return the root for the given object """
         if site is None:
-            site = Site.objects.get(pk=1)
+            site = Site.objects.get(pk=settings.SITE_ID)
 
         try:
             ct = ContentType.objects.get_for_model(obj)
@@ -96,7 +96,7 @@ class CommentManager(MP_NodeManager):
         ct = ContentType.objects.get_for_model(obj)
 
         if site is None:
-            site = Site.objects.get(pk=1)
+            site = Site.objects.get(pk=settings.SITE_ID)
 
         try:
             assoc = CommentAssociation.objects.select_related("root").get(
