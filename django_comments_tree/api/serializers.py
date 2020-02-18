@@ -7,7 +7,7 @@ except ImportError:
 
 from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.sites.shortcuts import get_current_site
+
 from django.utils import formats
 from django.utils.html import escape
 from django.utils.translation import ugettext as _, activate, get_language
@@ -177,10 +177,8 @@ class WriteCommentSerializer(serializers.Serializer):
         #  * Confirmation sent by mail (http 204),
         #  * Comment in moderation (http 202),
         #  * Comment rejected (http 403).
-        site = get_current_site(self.request)
-
         try:
-            comment_object = self.form.get_comment_object(site_id=site.id)
+            comment_object = self.form.get_comment_object(site_id=settings.SITE_ID)
         except ValueError:
             raise serializers.ValidationError(self.form.errors)
 
@@ -221,7 +219,7 @@ class WriteCommentSerializer(serializers.Serializer):
                     resp['code'] = 202
         else:
             key = signed.dumps(resp['comment'], compress=True, extra_key=settings.COMMENTS_TREE_SALT)
-            views.send_email_confirmation_request(resp['comment'], key, site)
+            views.send_email_confirmation_request(resp['comment'], key, settings.SITE_ID)
             resp['code'] = 204  # Confirmation sent by mail.
 
         return resp
