@@ -80,9 +80,9 @@ class CommentList(generics.ListAPIView):
         object_id_arg = self.kwargs.get('object_pk', None)
         app_label, model = content_type_arg.split(".")
 
-        sort = ''
+        sort = 'ASC'
         if self.request.GET.get('order') and self.request.GET.get('order') == 'desc':
-            sort = '-'
+            sort = 'DESC'
 
         try:
             content_type = ContentType.objects.get_by_natural_key(app_label,
@@ -94,7 +94,11 @@ class CommentList(generics.ListAPIView):
                                             assoc__object_id=object_id_arg,
                                             assoc__site__pk=settings.SITE_ID,
                                             is_public=True,
-                                            depth__gt=1).order_by(f'{sort}submit_date')
+                                            depth__gt=1).extra(select=dict(commments_order='LEFT(path, 8)'))
+
+            if sort == 'DESC':
+                qs = qs.order_by('-commments_order', 'path')
+
         return qs
 
 
