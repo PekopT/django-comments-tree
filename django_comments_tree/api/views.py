@@ -79,6 +79,11 @@ class CommentList(generics.ListAPIView):
         content_type_arg = self.kwargs.get('content_type', None)
         object_id_arg = self.kwargs.get('object_pk', None)
         app_label, model = content_type_arg.split(".")
+
+        sort = ''
+        if self.request.GET.get('order') and self.request.GET.get('order') == 'desc':
+            sort = '-'
+
         try:
             content_type = ContentType.objects.get_by_natural_key(app_label,
                                                                   model)
@@ -89,7 +94,7 @@ class CommentList(generics.ListAPIView):
                                             assoc__object_id=object_id_arg,
                                             assoc__site__pk=settings.SITE_ID,
                                             is_public=True,
-                                            depth__gt=1)
+                                            depth__gt=1).order_by(f'{sort}submit_date')
         return qs
 
 
