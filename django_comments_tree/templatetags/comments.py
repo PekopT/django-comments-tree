@@ -92,9 +92,9 @@ class BaseCommentNode(template.Node):
             site_id = get_current_site(context['request']).pk
 
         qs = self.comment_model.objects.filter(
-            content_type=ctype,
-            object_pk=smart_text(object_pk),
-            site__pk=site_id,
+            assoc__content_type=ctype,
+            assoc__object_id=smart_text(object_pk),
+            assoc__site__pk=site_id,
         )
 
         # The is_public and is_removed fields are implementation details of the

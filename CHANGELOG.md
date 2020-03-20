@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.1.8] = 2020-03-20
+
+    Adding ordering for CommentList
+
 ## [0.1.7] = 2019-12-28
 
     Adding ordering for CommentList
