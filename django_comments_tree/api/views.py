@@ -7,6 +7,7 @@ from rest_framework import generics, mixins, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from rest_framework_extensions.cache.decorators import cache_response
 
 from django_comments_tree.api import serializers
 from django_comments_tree.conf import settings
@@ -14,6 +15,16 @@ from django_comments_tree.models import TreeComment, TreeCommentFlag
 from django_comments_tree.permissions import IsOwner, IsModerator
 from django_comments_tree.views import comments as views
 from django_comments_tree.views.moderation import perform_flag
+
+
+def comment_list_cache_key(view_instance, view_method, request, args, kwargs):
+    content_type_arg = kwargs.get('content_type', None)
+    object_id_arg = kwargs.get('object_pk', None)
+    app_label, model = content_type_arg.split(".")
+    order = request.GET.get('order', 'asc')
+
+    key = f"{app_label}-{model}-{object_id_arg}-{order}"
+    return key
 
 
 class CommentCreate(generics.CreateAPIView):
@@ -45,6 +56,9 @@ class CommentCreate(generics.CreateAPIView):
                                                            context=dict(request=self.request))
         elif settings.COMMENTS_TREE_API_ANSWER_WITH_FULL_TREE:
             app_label, model = request.data['content_type'].split(".")
+            sort = 'ASC'
+            if self.request.GET.get('order') and self.request.GET.get('order') == 'desc':
+                sort = 'DESC'
             try:
                 content_type = ContentType.objects.get_by_natural_key(app_label, model)
             except ContentType.DoesNotExist:
@@ -54,7 +68,10 @@ class CommentCreate(generics.CreateAPIView):
                                                 assoc__object_id=request.data['object_id'],
                                                 assoc__site__pk=settings.SITE_ID,
                                                 is_public=True,
-                                                depth__gt=1)
+                                                depth__gt=1).extra(select=dict(commments_order='LEFT(path, 8)'))
+
+                if sort == 'DESC':
+                    qs = qs.order_by('-commments_order', 'path')
 
             answer_serializer = self.read_serializer_class(qs, many=True, context=dict(request=self.request))
             object_answer_serializer = self.read_serializer_class(instance=self.resp_dict['comment']['tree_comment'],
@@ -74,6 +91,10 @@ class CommentCreate(generics.CreateAPIView):
 class CommentList(generics.ListAPIView):
     """List all comments for a given ContentType and object ID."""
     serializer_class = serializers.ReadCommentSerializer
+
+    @cache_response(60 * 10, key_func=comment_list_cache_key, cache_errors=False)
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
     def get_queryset(self):
         content_type_arg = self.kwargs.get('content_type', None)
@@ -117,6 +138,7 @@ class CommentCount(generics.GenericAPIView):
                                         depth__gt=1)
         return qs
 
+    @cache_response(60 * 10, key_func=comment_list_cache_key, cache_errors=False)
     def get(self, request, *args, **kwargs):
         return Response({'count': self.get_queryset().count()})
 
