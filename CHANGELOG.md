@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.1.10] = 2020-06-22
+
+    Adding is_commerce flag
+
 ## [0.1.9] = 2020-03-22
 
     Adding ordering for full tree answer on comment post

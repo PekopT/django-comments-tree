@@ -245,7 +245,12 @@ class ReadCommentSerializer(serializers.ModelSerializer):
         model = TreeComment
         fields = ('id', 'user_id', 'user_name', 'user_url', 'user_moderator',
                   'user_avatar', 'user_rank', 'permalink', 'comment', 'submit_date',
-                  'parent_id', 'level', 'is_removed', 'allow_reply', 'flags')
+                  'parent_id', 'level', 'is_removed', 'allow_reply', 'flags', 'is_commerce')
+        read_only_fields = (
+            'is_commerce',
+            'user_avatar',
+            'user_rank',
+        )
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs['context']['request']
@@ -365,6 +370,16 @@ class ReadCommentSerializer(serializers.ModelSerializer):
 
     def get_permalink(self, obj):
         return obj.get_absolute_url()
+
+    def get_is_commerce(self, obj):
+        if settings.COMMENTS_TREE_API_USER_IS_COMMERCE_FIELD and obj.user:
+            rank = getattr(obj.user, settings.COMMENTS_TREE_API_USER_IS_COMMERCE_FIELD)
+            if rank:
+                return rank
+            else:
+                return settings.COMMENTS_TREE_API_USER_IS_COMMERCE_DEFAULT
+        return settings.COMMENTS_TREE_API_USER_IS_COMMERCE_DEFAULT
+
 
 
 class FlagSerializer(serializers.ModelSerializer):
