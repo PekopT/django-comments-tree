@@ -240,14 +240,17 @@ class ReadCommentSerializer(serializers.ModelSerializer):
     allow_reply = serializers.SerializerMethodField()
     permalink = serializers.SerializerMethodField()
     flags = serializers.SerializerMethodField()
+    is_commerce = serializers.SerializerMethodField()
+    is_exclusive = serializers.SerializerMethodField()
 
     class Meta:
         model = TreeComment
         fields = ('id', 'user_id', 'user_name', 'user_url', 'user_moderator',
                   'user_avatar', 'user_rank', 'permalink', 'comment', 'submit_date',
-                  'parent_id', 'level', 'is_removed', 'allow_reply', 'flags', 'is_commerce')
+                  'parent_id', 'level', 'is_removed', 'allow_reply', 'flags', 'is_commerce', 'is_exclusive')
         read_only_fields = (
             'is_commerce',
+            'is_exclusive',
             'user_avatar',
             'user_rank',
         )
@@ -379,6 +382,15 @@ class ReadCommentSerializer(serializers.ModelSerializer):
             else:
                 return settings.COMMENTS_TREE_API_USER_IS_COMMERCE_DEFAULT
         return settings.COMMENTS_TREE_API_USER_IS_COMMERCE_DEFAULT
+
+    def get_is_exclusive(self, obj):
+        if settings.COMMENTS_TREE_API_USER_IS_EXCLUSIVE_FIELD and obj.user:
+            rank = getattr(obj.user, settings.COMMENTS_TREE_API_USER_IS_EXCLUSIVE_FIELD)
+            if rank:
+                return rank
+            else:
+                return settings.COMMENTS_TREE_API_USER_IS_EXCLUSIVE_DEFAULT
+        return settings.COMMENTS_TREE_API_USER_IS_EXCLUSIVE_DEFAULT
 
 
 

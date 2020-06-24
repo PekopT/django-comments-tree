@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "django-comments-tree"
-version = "0.1.10"
+version = "0.1.11"
 description = "Django Comments Framework extension app with django-treebeard tree support, follow up notifications and email confirmations."
 authors = ["Ed Henderson <ed@sharpertool.com>", "Alexander @PekopT Brilliantov <alex@brilliantov.me>"]
 
